@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belgo Admin | Master Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --primary: #8CC63E; --bg: #f4f7f6; --dark: #333; --red: #ff4757; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .admin-container { max-width: 500px; margin: auto; display: none; }
+        .login-screen { position: fixed; top:0; left:0; width: 100%; height:100%; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 25px; text-align: center; width: 85%; }
+        .admin-box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 2px solid var(--primary); }
+        .tab-wrapper { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; }
+        .tab-btn { flex: 1; min-width: 80px; padding: 12px; border: none; background: #eee; border-radius: 12px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        .active-tab { background: var(--primary); color: white; }
+        .admin-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; }
+        .btn-save { background: var(--primary); color: white; padding: 15px; border-radius: 15px; border: none; width: 100%; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .card { padding: 15px; border-radius: 15px; background: #f9f9f9; border: 1px solid #eee; margin-top: 10px; }
+        .preview-card { background: white; padding: 10px; border-radius: 12px; margin-top: 10px; border: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+        .del-btn { background: var(--red); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+    <div class="login-box">
+        <h2 style="color: var(--primary);">Belgo Admin</h2>
+        <input type="password" id="adminPass" placeholder="Password" class="admin-input" style="text-align: center;">
+        <button class="btn-save" onclick="checkLogin()">Login</button>
+    </div>
+</div>
+
+<div class="admin-container" id="adminPanel">
+    <div class="admin-box">
+        <div class="tab-wrapper">
+            <button id="promoBtn" class="tab-btn active-tab" onclick="switchTab('promo')">Promos</button>
+            <button id="menuBtn" class="tab-btn" onclick="switchTab('menu')">Menu</button>
+            <button id="ordersBtn" class="tab-btn" onclick="switchTab('orders')">Orders</button>
+            <button id="settingsBtn" class="tab-btn" onclick="switchTab('settings')">Settings</button>
+        </div>
+
+        <div id="promo-form">
+            <input type="text" id="promoName" placeholder="Promo Name" class="admin-input">
+            <input type="file" id="promoFile" class="admin-input" accept="image/*">
+            <button class="btn-save" onclick="handleUpload('promo')">Upload Promo Photo</button>
+        </div>
+
+        <div id="menu-form" style="display:none;">
+            <input type="text" id="newCat" placeholder="Category Name" class="admin-input">
+            <input type="text" id="newName" placeholder="Item Name" class="admin-input">
+            <input type="number" id="newPrice" placeholder="Price" class="admin-input">
+            <input type="file" id="imageFile" class="admin-input" accept="image/*">
+            <button class="btn-save" onclick="handleUpload('menu')">Add Menu Photo</button>
+        </div>
+
+        <div id="orders-form" style="display:none;"><div id="orders-list"></div></div>
+
+        <div id="settings-form" style="display:none;">
+            <div class="card">
+                <label style="font-size: 11px; font-weight: 700;">SHOP STATUS</label>
+                <select id="shopStatus" class="admin-input" onchange="updateShopStatus()">
+                    <option value="open">🟢 OPEN</option>
+                    <option value="closed">🔴 CLOSED</option>
+                </select>
+            </div>
+            <div class="card">
+                <label style="font-size: 11px; font-weight: 700;">CLOSING MESSAGE</label>
+                <input type="text" id="closingMsg" placeholder="ഉദാ: നാളെ കാണാം!" class="admin-input">
+                <button class="btn-save" style="background:#555; padding: 10px;" onclick="updateClosingMsg()">Save Message</button>
+            </div>
+            <div class="card">
+                <label style="font-size: 11px; font-weight: 700;">UPDATE LOGO</label>
+                <input type="file" id="logoFile" class="admin-input" accept="image/*">
+                <button class="btn-save" onclick="handleUpload('logo')">Upload New Logo</button>
+            </div>
+            <button class="btn-save" style="background:#888;" onclick="clearOrders()">Clear History</button>
+        </div>
+    </div>
+    <div id="live-items-container" style="margin-top:20px;">
+        <h4 id="list-title">Live Items</h4>
+        <div id="items-list-inner"></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhckxp2E2v0e_moQM3D6UbqHI3u6l8wQo",
+        authDomain: "belgo-menu.firebaseapp.com",
+        databaseURL: "https://belgo-menu-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "belgo-menu"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const imgbbKey = "53133c0e06337943f4b4f460d1805e01";
+
+    function checkLogin() {
+        if(document.getElementById('adminPass').value === "belgo123") {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            loadLiveItems('promo'); syncSettings();
+        } else { alert("Wrong Password!"); }
+    }
+
+    function switchTab(tab) {
+        ['promo-form','menu-form','orders-form','settings-form'].forEach(id => {
+            document.getElementById(id).style.display = id.startsWith(tab) ? 'block' : 'none';
+        });
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+        document.getElementById(tab + 'Btn').classList.add('active-tab');
+        document.getElementById('live-items-container').style.display = (tab === 'settings' || tab === 'orders') ? 'none' : 'block';
+        if(tab === 'orders') loadOrders();
+    }
+
+    async function handleUpload(type) {
+        const fileInput = document.getElementById(type === 'promo' ? 'promoFile' : type === 'menu' ? 'imageFile' : 'logoFile');
+        const file = fileInput.files[0]; if(!file) return alert("Select File!");
+        const fd = new FormData(); fd.append("image", file);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {method:"POST", body:fd});
+        const out = await res.json();
+        const url = out.data.url;
+
+        if(type === 'promo') {
+            const snap = await db.ref('promos').once('value');
+            let list = snap.val() || [];
+            list.push({ u: url, n: document.getElementById('promoName').value });
+            await db.ref('promos').set(list);
+        } else if(type === 'menu') {
+            const cat = document.getElementById('newCat').value || "General";
+            const snap = await db.ref(`menu/${cat}`).once('value');
+            let list = snap.val() || [];
+            list.push({ n: document.getElementById('newName').value, p: document.getElementById('newPrice').value, i: url });
+            await db.ref(`menu/${cat}`).set(list);
+        } else if(type === 'logo') {
+            await db.ref('settings/logo').set(url);
+        }
+        alert("Updated!"); loadLiveItems(type);
+    }
+
+    function syncSettings() {
+        db.ref('settings').on('value', snap => {
+            const s = snap.val(); if(!s) return;
+            document.getElementById('shopStatus').value = s.status || 'open';
+            document.getElementById('closingMsg').value = s.close_msg || 'SORRY, WE ARE CLOSED!';
+        });
+    }
+
+    function updateShopStatus() { db.ref('settings/status').set(document.getElementById('shopStatus').value); }
+    function updateClosingMsg() { db.ref('settings/close_msg').set(document.getElementById('closingMsg').value); alert("Saved!"); }
+
+    function loadLiveItems(type) {
+        const listDiv = document.getElementById('items-list-inner');
+        db.ref(type === 'promo' ? 'promos' : 'menu').on('value', snap => {
+            listDiv.innerHTML = ''; const data = snap.val(); if(!data) return;
+            if(type === 'promo') {
+                data.forEach((item, i) => {
+                    listDiv.innerHTML += `<div class="preview-card"><img src="${item.u}" style="width:40px; height:40px; border-radius:5px;"> <span>${item.n}</span> <button class="del-btn" onclick="deleteItem('promo',null,${i})">Del</button></div>`;
+                });
+            } else {
+                for(let cat in data) {
+                    data[cat].forEach((item, i) => {
+                        listDiv.innerHTML += `<div class="preview-card"><span><b>${cat}</b>: ${item.n}</span> <button class="del-btn" onclick="deleteItem('menu','${cat}',${i})">Del</button></div>`;
+                    });
+                }
+            }
+        });
+    }
+
+    async function deleteItem(type, cat, index) {
+        const path = type === 'promo' ? 'promos' : `menu/${cat}`;
+        const s = await db.ref(path).once('value');
+        let l = s.val(); l.splice(index, 1);
+        l.length ? await db.ref(path).set(l) : await db.ref(path).remove();
+    }
+
+    function loadOrders() {
+        db.ref('orders').on('value', snap => {
+            const list = document.getElementById('orders-list'); list.innerHTML = '';
+            const data = snap.val(); if(!data) return;
+            Object.keys(data).reverse().forEach(id => {
+                list.innerHTML += `<div class="card" style="font-size:12px;">${data[id].items}</div>`;
+            });
+        });
+    }
+
+    function clearOrders() { if(confirm("Clear All?")) db.ref('orders').remove(); }
+</script>
+</body>
+</html>

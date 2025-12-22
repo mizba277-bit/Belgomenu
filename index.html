@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belgo | Premium Dessert Lounge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --belgo: #8CC63E; --bg-light: #f1f8e9; --white: #ffffff; --text-dark: #2d3436; }
+        body { font-family: 'Poppins', sans-serif; background: var(--belgo); margin: 0; padding-bottom: 120px; color: var(--white); overflow-x: hidden; }
+        
+        /* LOGO SECTION */
+        header { padding: 35px 15px 10px; text-align: center; }
+        .logo-img { height: 100px; width: auto; filter: brightness(0) invert(1); object-fit: contain; }
+
+        #closed-notice { background: #ff4757; color: white; text-align: center; padding: 12px; font-weight: 700; position: sticky; top: 0; z-index: 3000; display: none; font-size: 14px; }
+        
+        /* SLIDER & POPULAR BADGE */
+        #hero-slider { width: 100%; height: 280px; position: relative; overflow: hidden; }
+        .slide-container { width: 100%; height: 100%; position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transform: translateY(30px); transition: all 0.7s ease; }
+        .slide-container.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        
+        .img-wrapper { position: relative; display: inline-block; padding-top: 15px; }
+        .slide-img { width: 250px; height: 150px; border-radius: 20px; object-fit: contain; background: rgba(255,255,255,0.1); padding: 10px; }
+        
+        .pop-badge { 
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%); 
+            background: white; color: var(--belgo); padding: 4px 15px; 
+            border-radius: 30px; font-size: 10px; font-weight: 800; 
+            display: flex; align-items: center; gap: 5px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            animation: pulse-glow 2s infinite ease-in-out; 
+            white-space: nowrap; z-index: 10; 
+        }
+        @keyframes pulse-glow { 
+            0% { transform: translateX(-50%) scale(1); } 
+            50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.7); } 
+            100% { transform: translateX(-50%) scale(1); } 
+        }
+        .pop-name { font-size: 1.3rem; font-weight: 700; margin-top: 12px; text-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+        /* MENU SECTION */
+        .menu-section { padding: 15px 0 10px 20px; }
+        .menu-section h3 { font-size: 1.1rem; border-left: 4px solid white; padding-left: 10px; margin-bottom: 15px; text-transform: uppercase; }
+        .items-scroll { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; padding-right: 20px; }
+        
+        .menu-item { flex: 0 0 160px; background: var(--bg-light); border-radius: 22px; overflow: hidden; color: var(--text-dark); box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .item-img { width: 100%; height: 115px; object-fit: cover; background: white; }
+        .item-info { padding: 12px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .item-name { font-size: 13px; font-weight: 600; margin-bottom: 5px; min-height: 38px; line-height: 1.3; }
+        .item-price { font-weight: 800; font-size: 15px; margin-bottom: 10px; color: #000; }
+
+        /* BUTTONS */
+        .btn-container { min-height: 38px; display: flex; align-items: center; justify-content: center; }
+        .order-btn { background: var(--belgo); color: white; border: none; padding: 10px; border-radius: 12px; width: 100%; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .order-btn:disabled { background: #bbb; cursor: not-allowed; }
+        
+        .qty-controls { display: flex; align-items: center; justify-content: space-between; background: #e8e8e8; border-radius: 12px; width: 100%; padding: 4px; }
+        .qty-btn { background: var(--belgo); color: white; border: none; width: 30px; height: 30px; border-radius: 8px; font-weight: 800; cursor: pointer; }
+        .qty-num { font-weight: 800; font-size: 15px; }
+
+        /* FOOTER */
+        .sticky-footer { position: fixed; bottom: 20px; left: 5%; width: 90%; background: white; padding: 14px; border-radius: 22px; box-shadow: 0 15px 45px rgba(0,0,0,0.4); z-index: 2000; display: none; box-sizing: border-box; }
+        .footer-order-btn { background: var(--belgo); color: white; width: 100%; padding: 15px; border-radius: 16px; border: none; font-weight: 800; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+<div id="closed-notice">SORRY, WE ARE CLOSED!</div>
+<header><img src="" id="main-logo" class="logo-img" alt="Logo"></header>
+
+<div id="hero-slider"><div id="promo-slides"></div></div>
+
+<div id="full-menu"></div>
+
+<div class="sticky-footer" id="cart-footer">
+    <button onclick="sendOrder()" class="footer-order-btn">
+        <span id="f-count">0 ITEMS</span>
+        <span>CONFIRM ORDER</span>
+        <span id="f-total">₹0</span>
+    </button>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhckxp2E2v0e_moQM3D6UbqHI3u6l8wQo",
+        authDomain: "belgo-menu.firebaseapp.com",
+        databaseURL: "https://belgo-menu-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "belgo-menu"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let isShopClosed = false;
+    let cart = {};
+
+    function checkStatus() {
+        const now = new Date();
+        const mins = now.getHours() * 60 + now.getMinutes();
+        const open = 11 * 60 + 30; // 11:30 AM
+        const close = 23 * 60 + 30; // 11:30 PM
+        const timeClosed = (mins < open || mins >= close);
+
+        db.ref('settings').on('value', snap => {
+            const s = snap.val() || {};
+            isShopClosed = timeClosed || (s.status === 'closed');
+            document.getElementById('closed-notice').innerText = s.close_msg || "SORRY, WE ARE CLOSED!";
+            document.getElementById('closed-notice').style.display = isShopClosed ? 'block' : 'none';
+            if(s.logo) document.getElementById('main-logo').src = s.logo;
+            loadMenu();
+        });
+    }
+
+    db.ref('promos').on('value', snap => {
+        const container = document.getElementById('promo-slides');
+        const items = snap.val() || [];
+        container.innerHTML = items.map((item, i) => `
+            <div class="slide-container ${i === 0 ? 'active' : ''}">
+                <div class="img-wrapper">
+                    <div class="pop-badge">⭐ Popular</div>
+                    <img src="${item.u}" class="slide-img">
+                </div>
+                <span class="pop-name">${item.n || ''}</span>
+            </div>`).join('');
+        startSlider();
+    });
+
+    function loadMenu() {
+        db.ref('menu').once('value', snap => {
+            const data = snap.val(); if(!data) return;
+            const container = document.getElementById('full-menu'); 
+            container.innerHTML = '';
+            for(let cat in data) {
+                let html = `<div class="menu-section"><h3>${cat}</h3><div class="items-scroll">`;
+                data[cat].forEach(item => {
+                    const qty = cart[item.n] ? cart[item.n].q : 0;
+                    html += `
+                        <div class="menu-item">
+                            <img src="${item.i}" class="item-img">
+                            <div class="item-info">
+                                <div class="item-name">${item.n}</div>
+                                <span class="item-price">₹${item.p}</span>
+                                <div class="btn-container">
+                                    ${qty > 0 ? `
+                                        <div class="qty-controls">
+                                            <button class="qty-btn" onclick="updateCart('${item.n}',${item.p},-1)">-</button>
+                                            <span class="qty-num">${qty}</span>
+                                            <button class="qty-btn" onclick="updateCart('${item.n}',${item.p},1)">+</button>
+                                        </div>` : 
+                                        `<button onclick="updateCart('${item.n}',${item.p},1)" class="order-btn" ${isShopClosed ? 'disabled' : ''}>ADD</button>`}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                container.innerHTML += html + `</div></div>`;
+            }
+        });
+    }
+
+    window.updateCart = (n, p, c) => {
+        if(isShopClosed && c > 0) return;
+        if(!cart[n]) cart[n] = {p:p, q:0};
+        cart[n].q += c;
+        if(cart[n].q <= 0) delete cart[n];
+        loadMenu(); updateFooter();
+    };
+
+    function updateFooter() {
+        let count = 0, total = 0;
+        for(let k in cart){ count += cart[k].q; total += (cart[k].q * cart[k].p); }
+        document.getElementById('cart-footer').style.display = count > 0 ? 'block' : 'none';
+        document.getElementById('f-count').innerText = count + " ITEMS";
+        document.getElementById('f-total').innerText = "₹" + total;
+    }
+
+    window.sendOrder = () => {
+        let txt = "*New Order - Belgo*\n\n";
+        for(let n in cart) txt += `▪️ ${n} [x${cart[n].q}]\n`;
+        window.open(`https://wa.me/917593010102?text=${encodeURIComponent(txt)}`);
+    };
+
+    let slideIdx = 0;
+    function startSlider() {
+        const slides = document.querySelectorAll('.slide-container');
+        if(slides.length < 2) return;
+        setInterval(() => {
+            slides[slideIdx].classList.remove('active');
+            slideIdx = (slideIdx + 1) % slides.length;
+            slides[slideIdx].classList.add('active');
+        }, 4000);
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 30000);
+</script>
+</body>
+</html>
