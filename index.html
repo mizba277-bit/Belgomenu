@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <meta name="google-site-verification" content="lsYRoTtttUw4RFypHTdc21V7gxH6-pVUeTT6EHaCB0o" />
-
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg' fill='%23000000'><path fill='%238CC63E' d='M36 32a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v28z'></path><path fill='white' d='M10.498 9.249c0-1.488 1.023-2.325 2.449-2.325H18.9c3.224 0 5.83 2.17 5.83 5.457c0 2.17-.9 3.628-2.885 4.558v.062c2.637.372 4.713 2.573 4.713 5.271c0 4.372-2.914 6.729-7.193 6.729h-6.386c-1.427 0-2.481-.899-2.481-2.356V9.249zm4.651 6.418h2.419c1.519 0 2.511-.899 2.511-2.45c0-1.457-1.147-2.201-2.511-2.201h-2.419v4.651zm0 9.24h3.659c1.674 0 2.915-.961 2.915-2.697c0-1.458-1.117-2.45-3.287-2.45h-3.287v5.147z'></path></svg>">
 
     <title>Belgo | Premium Dessert Lounge</title>
@@ -17,7 +15,7 @@
         body { font-family: 'Poppins', sans-serif; background: var(--belgo); margin: 0; padding-bottom: 120px; color: var(--white); overflow-x: hidden; }
         header { padding: 35px 15px 10px; text-align: center; }
         .logo-img { height: 100px; width: auto; filter: brightness(0) invert(1); object-fit: contain; }
-        #closed-notice { background: #ff4757; color: white; text-align: center; padding: 12px; font-weight: 700; position: sticky; top: 0; z-index: 3000; display: none; font-size: 14px; }
+        #closed-notice { background: #ff4757; color: white; text-align: center; padding: 15px; font-weight: 700; position: sticky; top: 0; z-index: 3000; display: none; font-size: 14px; }
         .search-box { padding: 0 20px 15px; }
         .search-input { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; outline: none; font-size: 14px; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         #hero-slider { width: 100%; height: 280px; position: relative; overflow: hidden; }
@@ -49,7 +47,7 @@
 </head>
 <body>
 
-<div id="closed-notice">SORRY, WE ARE CLOSED!</div>
+<div id="closed-notice"></div>
 <header><img src="" id="main-logo" class="logo-img" alt="Logo"></header>
 
 <div class="search-box">
@@ -78,7 +76,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- TRACKING LOGIC ---
     const todayKey = new Date().toISOString().split('T')[0]; 
     const lastDailyVisit = localStorage.getItem('last_daily_visit');
     if (lastDailyVisit !== todayKey) {
@@ -94,9 +91,27 @@
     function checkStatus() {
         db.ref('settings').on('value', snap => {
             const s = snap.val() || {};
-            isShopClosed = (s.status === 'closed');
-            document.getElementById('closed-notice').innerText = s.close_msg || "SORRY, WE ARE CLOSED!";
-            document.getElementById('closed-notice').style.display = isShopClosed ? 'block' : 'none';
+            
+            // --- AUTO TIME LOGIC ---
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const openTime = 690;  // 11:30 AM
+            const closeTime = 1410; // 11:30 PM
+
+            if (s.status === 'closed' || currentTime < openTime || currentTime >= closeTime) {
+                isShopClosed = true;
+            } else {
+                isShopClosed = false;
+            }
+
+            const notice = document.getElementById('closed-notice');
+            if (isShopClosed) {
+                notice.innerText = s.close_msg || "SORRY, WE ARE CLOSED!";
+                notice.style.display = 'block';
+            } else {
+                notice.style.display = 'none';
+            }
+
             if(s.logo) document.getElementById('main-logo').src = s.logo;
             loadMenu();
         });
@@ -134,7 +149,6 @@
 
         sortedCats.forEach(cat => {
             const displayCategory = cat.replace(/^\d+_/, '');
-            
             let catHtml = `<div class="menu-section"><h3>${displayCategory}</h3><div class="items-scroll">`;
             let itemInCat = false;
 
@@ -215,7 +229,7 @@
     }
 
     checkStatus();
-    setInterval(checkStatus, 60000);
+    setInterval(checkStatus, 30000); 
 </script>
 </body>
 </html>
