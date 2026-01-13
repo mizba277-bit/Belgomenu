@@ -13,42 +13,75 @@
     <style>
         :root { --belgo: #8CC63E; --bg-light: #f1f8e9; --white: #ffffff; --text-dark: #2d3436; }
         body { font-family: 'Poppins', sans-serif; background: var(--belgo); margin: 0; padding-bottom: 120px; color: var(--white); overflow-x: hidden; }
+        
+        /* Header & Logo */
         header { padding: 35px 15px 10px; text-align: center; }
         .logo-img { height: 100px; width: auto; filter: brightness(0) invert(1); object-fit: contain; }
+        
         #closed-notice { background: #ff4757; color: white; text-align: center; padding: 15px; font-weight: 700; position: sticky; top: 0; z-index: 3000; display: none; font-size: 14px; }
-        .search-box { padding: 0 20px 15px; }
+        
+        /* Search Box */
+        .search-box { padding: 0 20px 15px; max-width: 600px; margin: 0 auto; }
         .search-input { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; outline: none; font-size: 14px; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* Hero Slider */
         #hero-slider { width: 100%; height: 280px; position: relative; overflow: hidden; }
         .slide-container { width: 100%; height: 100%; position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transform: translateY(30px); transition: all 0.7s ease; }
         .slide-container.active { opacity: 1; visibility: visible; transform: translateY(0); }
         .img-wrapper { position: relative; display: inline-block; padding-top: 15px; }
         .slide-img { width: 250px; height: 150px; border-radius: 20px; object-fit: contain; background: rgba(255,255,255,0.1); padding: 10px; }
+        
         .pop-badge { position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: white; color: var(--belgo); padding: 4px 15px; border-radius: 30px; font-size: 10px; font-weight: 800; display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: pulse-glow 2s infinite ease-in-out; white-space: nowrap; z-index: 10; }
         @keyframes pulse-glow { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.7); } 100% { transform: translateX(-50%) scale(1); } }
         .pop-name { font-size: 1.3rem; font-weight: 700; margin-top: 12px; text-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        .menu-section { padding: 15px 0 10px 20px; }
+
+        /* Menu Section */
+        .menu-section { padding: 15px 20px; max-width: 1200px; margin: 0 auto; }
         .menu-section h3 { font-size: 1.1rem; border-left: 4px solid white; padding-left: 10px; margin-bottom: 15px; text-transform: uppercase; }
-        .items-scroll { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; padding-right: 20px; }
-        .menu-item { flex: 0 0 160px; background: var(--bg-light); border-radius: 22px; overflow: hidden; color: var(--text-dark); box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        
+        /* Responsive Grid/Scroll Logic */
+        .items-scroll { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; }
+        .items-scroll::-webkit-scrollbar { display: none; }
+        
+        .menu-item { flex: 0 0 160px; background: var(--bg-light); border-radius: 22px; overflow: hidden; color: var(--text-dark); box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; transition: transform 0.3s ease; }
+        
+        /* Laptop Specific Styles */
+        @media (min-width: 1024px) {
+            .items-scroll { 
+                display: grid; 
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+                overflow-x: visible; 
+                gap: 25px; 
+            }
+            .menu-item { flex: none; width: 100%; }
+            .menu-item:hover { transform: translateY(-10px); }
+            .logo-img { height: 140px; }
+            .item-img { height: 150px; }
+        }
+
         .item-img { width: 100%; height: 115px; object-fit: cover; background: white; }
         .item-info { padding: 12px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .item-name { font-size: 13px; font-weight: 600; margin-bottom: 5px; min-height: 38px; line-height: 1.3; }
         .item-price { font-weight: 800; font-size: 15px; margin-bottom: 10px; color: #000; }
+        
         .btn-container { min-height: 38px; display: flex; align-items: center; justify-content: center; }
         .order-btn { background: var(--belgo); color: white; border: none; padding: 10px; border-radius: 12px; width: 100%; font-weight: 700; font-size: 12px; cursor: pointer; }
         .order-btn:disabled { background: #bbb; cursor: not-allowed; }
+        
         .qty-controls { display: flex; align-items: center; justify-content: space-between; background: #e8e8e8; border-radius: 12px; width: 100%; padding: 4px; }
         .qty-btn { background: var(--belgo); color: white; border: none; width: 30px; height: 30px; border-radius: 8px; font-weight: 800; cursor: pointer; }
         .qty-num { font-weight: 800; font-size: 15px; }
-        .sticky-footer { position: fixed; bottom: 20px; left: 5%; width: 90%; background: white; padding: 14px; border-radius: 22px; box-shadow: 0 15px 45px rgba(0,0,0,0.4); z-index: 2000; display: none; box-sizing: border-box; animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .footer-order-btn { background: var(--belgo); color: white; width: 100%; padding: 15px; border-radius: 16px; border: none; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Footer Order Bar */
+        .sticky-footer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: white; padding: 14px; border-radius: 22px; box-shadow: 0 15px 45px rgba(0,0,0,0.4); z-index: 2000; display: none; box-sizing: border-box; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translate(-50%, 100px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        .footer-order-btn { background: var(--belgo); color: white; width: 100%; padding: 15px; border-radius: 16px; border: none; font-weight: 800; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="closed-notice"></div>
-<header><img src="" id="main-logo" class="logo-img" alt="Logo"></header>
+<header><img src="" id="main-logo" class="logo-img" alt="Belgo Logo"></header>
 
 <div class="search-box">
     <input type="text" id="menu-search" class="search-input" placeholder="Search desserts..." onkeyup="filterMenu()">
@@ -67,6 +100,7 @@
 </div>
 
 <script>
+    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyBhckxp2E2v0e_moQM3D6UbqHI3u6l8wQo",
         authDomain: "belgo-menu.firebaseapp.com",
@@ -76,6 +110,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // --- Simple Analytics ---
     const todayKey = new Date().toISOString().split('T')[0]; 
     const lastDailyVisit = localStorage.getItem('last_daily_visit');
     if (lastDailyVisit !== todayKey) {
@@ -91,18 +126,12 @@
     function checkStatus() {
         db.ref('settings').on('value', snap => {
             const s = snap.val() || {};
-            
-            // --- AUTO TIME LOGIC ---
             const now = new Date();
             const currentTime = now.getHours() * 60 + now.getMinutes();
             const openTime = 690;  // 11:30 AM
             const closeTime = 1410; // 11:30 PM
 
-            if (s.status === 'closed' || currentTime < openTime || currentTime >= closeTime) {
-                isShopClosed = true;
-            } else {
-                isShopClosed = false;
-            }
+            isShopClosed = (s.status === 'closed' || currentTime < openTime || currentTime >= closeTime);
 
             const notice = document.getElementById('closed-notice');
             if (isShopClosed) {
